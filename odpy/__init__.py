@@ -1,4 +1,4 @@
-"""Module initialization
+"""Generic Python tools for OpendTect
 
 Copyright (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
   * AUTHOR   : A. Huck
@@ -6,7 +6,4 @@ Copyright (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.
 
 """
 
-import os
-
-from .odpy import *
-__path__ = [os.path.join(os.path.dirname(__file__), 'odpy')]
+__version__ = '1.0.0'
