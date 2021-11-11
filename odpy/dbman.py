@@ -1,7 +1,7 @@
 import json
 
 from odpy.common import isWin, log_msg
-from odpy.oscommand import getODCommand, execCommand
+from odpy.oscommand import getODCommand, execCommand, getEnvForOpendTect
 
 dbmanexe = 'od_DBMan'
 
@@ -20,13 +20,13 @@ def getDBList(translnm,alltrlsgrps=False,exenm=dbmanexe,args=None):
     * dict: Dictionary containing database survey well information (size, IDs, Names, Formats, Status)
   """
 
-  cmd = getODCommand(exenm,args)
+  cmd = getODCommand(exenm,args=args)
   cmd.append( '--json' )
   if alltrlsgrps:
     cmd.append( '--all' )
   cmd.append( '--list' )
   cmd.append( translnm )
-  return getDBDict( cmd )
+  return getDBDict( cmd, args=args )
 
 def getInfoFromDBListByNameOrKey(nm_or_key,dblist):
   """ Gets info from database list with obj key or name
@@ -86,13 +86,13 @@ def getInfoByName(objnm,translnm,exenm=dbmanexe,args=None ):
 
   """
 
-  cmd = getODCommand(exenm,args)
+  cmd = getODCommand(exenm,args=args)
   cmd.append( '--json' )
   cmd.append( '--exists' )
   cmd.append( objnm )
   cmd.append( '--trl-grp' )
   cmd.append( translnm )
-  ret = getDBDict( cmd )
+  ret = getDBDict( cmd, args=args )
   if not 'ID' in ret:
     return None
   return ret
@@ -111,21 +111,24 @@ def getInfoByKey(objkey,exenm=dbmanexe,args=None ):
     dict: file info (ID, Name, Format, File name, etc)
   """
 
-  cmd = getODCommand(exenm,args)
+  cmd = getODCommand(exenm,args=args)
   cmd.append( '--json' )
   cmd.append( '--info' )
   cmd.append( objkey )
-  return getDBDict( cmd )
+  return getDBDict( cmd, args=args )
 
-def getDBDict( cmd ):
+def getDBDict( cmd, args=None ):
   """ Gets database dict with command
 
   Parameters:
     * cmd (str): command to be executed
+    * args (dict, optional):
+      Dictionary with the members 'dtectdata' and 'survey' as 
+      single element lists, and/or 'dtectexec' (see odpy.common.getODSoftwareDir)
 
   """
 
-  ret = execCommand( cmd )
+  ret = execCommand( cmd, env=getEnvForOpendTect(args=args) )
   retstr = ret.decode('utf-8')
   if isWin():
     retstr = retstr.translate(str.maketrans({"\\": r"\\"}))
@@ -197,11 +200,11 @@ def getFileLocation( dbkey, args=None ):
 
   """
 
-  cmd = getODCommand(dbmanexe,args)
+  cmd = getODCommand(dbmanexe,args=args)
   cmd.append( '--json' )
   cmd.append( '--info' )
   cmd.append( dbkey )
-  return retFileLoc( execCommand(cmd) )
+  return retFileLoc( execCommand(cmd,env=getEnvForOpendTect(args=args)) )
 
 def getNewEntryFileName( objnm, dirid, trgrp, trl, ext, ftype=None, args=None ):
   """ Registers a new OpendTect dataset to database
@@ -217,7 +220,7 @@ def getNewEntryFileName( objnm, dirid, trgrp, trl, ext, ftype=None, args=None ):
 
   """
 
-  cmd = getODCommand(dbmanexe,args)
+  cmd = getODCommand(dbmanexe,args=args)
   cmd.append( '--create' )
   cmd.append( objnm )
   cmd.append( dirid )
@@ -227,5 +230,5 @@ def getNewEntryFileName( objnm, dirid, trgrp, trl, ext, ftype=None, args=None ):
   if ftype != None:
       cmd.append( ftype )
   cmd.append( '--json' )
-  return retFileLoc( execCommand(cmd) )
+  return retFileLoc( execCommand(cmd,env=getEnvForOpendTect(args=args)) )
 
