@@ -12,12 +12,9 @@ Tutorial link can be found here: https://github.com/OpendTect/OpendTect-ML-Dev/b
 
 """
 
-import numpy as np
-import json
-
 import odpy.common as odcommon
 import odpy.dbman as oddbman
-from odpy.oscommand import getODCommand, execCommand
+from odpy.oscommand import getODCommand
 
 wellmanexe = 'od_WellMan'
 wlldbdirid = '100050'
@@ -63,11 +60,11 @@ def getInfo( wllnm, reload=False, args=None ):
   ret = oddbman.getInfoByName( wllnm, wlltrlgrp,exenm=oddbman.dbmanexe, args=args )
   dbkey = getDBKey( wllnm, reload=reload, args=args )
   if dbkey != None:
-      cmd = getODCommand(wellmanexe,args)
+      cmd = getODCommand(wellmanexe,args=args)
       cmd.append( '--info' )
       cmd.append( dbkey )
       try:
-        wllinfo = oddbman.getDBDict( cmd )
+        wllinfo = oddbman.getDBDict( cmd, args=args )
         if isinstance(wllinfo,dict):
           for keynm in wllinfo:
             ret.update( {keynm: wllinfo[keynm]} )
@@ -91,10 +88,10 @@ def getName( dbkey, reload=False, args=None ):
 
   """
 
-  cmd = getODCommand(wellmanexe,args)
+  cmd = getODCommand(wellmanexe,args=args)
   cmd.append( '--info' )
   cmd.append( dbkey )
-  ret = oddbman.getDBDict( cmd )
+  ret = oddbman.getDBDict( cmd, args=args )
   return ret['Name']
 
 def getLogNames( wllnm, reload=False, args=None ):
@@ -113,10 +110,10 @@ def getLogNames( wllnm, reload=False, args=None ):
   """
 
   dbkey = getDBKey( wllnm, reload=reload, args=args )
-  cmd = getODCommand(wellmanexe,args)
+  cmd = getODCommand(wellmanexe,args=args)
   cmd.append( '--list-logs' )
   cmd.append( dbkey )
-  ret = oddbman.getDBDict( cmd )
+  ret = oddbman.getDBDict( cmd, args=args )
   return ret['Names']
 
 def getLog( wllnm, lognm, reload=False, args=None ):
@@ -138,11 +135,11 @@ def getLog( wllnm, lognm, reload=False, args=None ):
     
   """
   dbkey = getDBKey( wllnm, reload=reload, args=args )
-  cmd = getODCommand(wellmanexe,args)
+  cmd = getODCommand(wellmanexe,args=args)
   cmd.append( '--read-log' )
   cmd.append( dbkey )
   cmd.append( lognm )
-  ret = oddbman.getDBDict( cmd )
+  ret = oddbman.getDBDict( cmd, args=args )
   return (ret['MDs'], ret['Values'])
 
 def getLogs( wllnm, logidxlst, zstep=0.5, reload=False, args=None ):
@@ -170,13 +167,13 @@ def getLogs( wllnm, logidxlst, zstep=0.5, reload=False, args=None ):
 
   """
   dbkey = getDBKey( wllnm, reload=reload, args=args )
-  cmd = getODCommand(wellmanexe,args)
+  cmd = getODCommand(wellmanexe,args=args)
   cmd.append( '--read-logs' )
   cmd.append( dbkey )
   cmd.append( logidxlst )
   cmd.append( '--zstep' )
   cmd.append( str(zstep) )
-  ret = oddbman.getDBDict( cmd )
+  ret = oddbman.getDBDict( cmd, args=args )
   nlogs = len(ret['Names'])
   result = { 'depth': ret['MDs'] }
   for n in range(nlogs):
@@ -237,10 +234,10 @@ def getMarkers( wllnm, reload=False, args=None ):
   """
 
   dbkey = getDBKey( wllnm, reload=reload, args=args )
-  cmd = getODCommand(wellmanexe,args)
+  cmd = getODCommand(wellmanexe,args=args)
   cmd.append( '--list-markers' )
   cmd.append( dbkey )
-  ret = oddbman.getDBDict( cmd )
+  ret = oddbman.getDBDict( cmd, args=args )
   return (ret['Names'], ret['MDs'], ret['Color'])
 
 def getTrack( wllnm, reload=False, args=None ):
@@ -259,9 +256,9 @@ def getTrack( wllnm, reload=False, args=None ):
   """
 
   dbkey = getDBKey( wllnm, reload=reload, args=args )
-  cmd = getODCommand(wellmanexe, args)
+  cmd = getODCommand(wellmanexe, args=args)
   cmd.append( '--read-track' )
   cmd.append( dbkey )
-  ret = oddbman.getDBDict( cmd )
+  ret = oddbman.getDBDict( cmd, args=args )
   return (ret['MDs'], ret['TVDs'], ret['X-Coords'], ret['Y-Coords'])
 

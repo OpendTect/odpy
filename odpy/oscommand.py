@@ -12,26 +12,25 @@ General Example:
     ['C:\\PROGRA~1\\OPENDT~1\\6683E8~1.0\\bin\\win64\\Release\\od_main']
   >>> execpath = cmd[0]
 
-  >>> odproc = execCommand(execpath, background=True) # exeCommand executes the command in background mode and launches software
+  >>> odproc = execCommand(execpath, background=True, env=getEnvForOpendTect()) # execCommand executes the command in background mode and launches software
 
   getODCommand and execCommand wrapped into a function
 
   >>> def launchApp(execnm, args=None):
-        return execCommand(getODCommand(execnm))
-  >>> launchApp(od_DBMain.exe)          #od_DBMain is executable used by odpy.dbman
+        return execCommand(getODCommand(execnm,args=args),env=getEnvForOpendTect())
+  >>> launchApp(od_DBMan)          #od_DBMan is executable used by odpy.dbman
 
 """
 
 import sys
 import os
 import psutil
-import signal
 import subprocess
 import json
 import threading
 
-from odpy.common import isWin, isLux, getODSoftwareDir, getExecPlfDir, \
-     get_log_stream, get_std_stream, std_msg, sTimeUnitString, log_msg
+from odpy.common import isWin, isLux, isMac, getODSoftwareDir, getExecPlfDir, \
+     get_std_stream, std_msg, sTimeUnitString, log_msg
 
 def getODCommand(execnm,args=None):
   """OpendTect command
@@ -57,7 +56,7 @@ def getODCommand(execnm,args=None):
       'survey': ['F3_Demo']
     }
 
-    >>> getODCommand(od_process_attrib)
+    >>> getODCommand( od_process_attrib, args=args )
     ['C:\\Program Files\\OpendTect\\6.6.0\\bin\win64\Release\\od_process_attrib',
     '--dataroot',
     'D:\\ODData',
@@ -75,7 +74,7 @@ def getODCommand(execnm,args=None):
     cmd.append( os.path.join(getExecPlfDir(args),execnm) )
   else:
     cmd.append( execnm )
-  return appendDtectArgs( cmd, args )
+  return appendDtectArgs( cmd, args=args )
 
 def appendDtectArgs( cmd, args=None ):
   """Append OpendTect arguments
@@ -95,7 +94,7 @@ def appendDtectArgs( cmd, args=None ):
       'survey': ['F3_Demo']
     }
 
-    >>> appendDtectArgs( args )
+    >>> appendDtectArgs( list(), args=args )
     ['--dataroot', 'D:\\ODData', '--survey', 'F3_Demo']
 
   """
@@ -109,6 +108,93 @@ def appendDtectArgs( cmd, args=None ):
     cmd.append( '--survey' )
     cmd.append( args['survey'][0] )
   return cmd
+
+def getEnvForOpendTect( args=None ):
+  """Environment for running OpendTect commands
+
+  Removes some of the environment set by conda, especially
+  paths to Qt libraries, to remove conflicts with OpendTect libraries
+  
+  Parameters:
+    * arg (dict, optional):
+      Dictionary with the members 'dtectdata' and 'survey' as 
+      single element lists, and/or 'dtectexec' (see odpy.getODSoftwareDir)
+
+  Returns:
+    * An environment mapping that can be passed to subprocess.Popen
+      or oscommand.execCommand.
+  
+  """
+  odpath = getODSoftwareDir( args )
+  env = os.environ.copy()
+
+  rmkeys = list()
+  updatedvals = dict()
+  condaprefix = ''
+  if 'CONDA_PREFIX' in env:
+    condaprefix = env['CONDA_PREFIX']
+  condabase = ''
+  if 'CONDA_PYTHON_EXE' in env:
+    condabase = env['CONDA_PYTHON_EXE']
+    if os.path.exists(condabase):
+      condabase = os.path.dirname(condabase)
+      condabase = os.path.dirname(condabase)
+
+  newpaths = list()
+  newldpaths = list()
+  ldpathnm = 'LD_LIBRARY_PATH'
+  oldpathnm = 'OLD_LD_LIBRARY_PATH'
+  if isMac():
+    ldpathnm = 'DYLD_LIBRARY_PATH'
+    oldpathnm = 'OLD_DYLD_LIBRARY_PATH'
+
+  for keynm in env:
+    if keynm.startswith('CONDA_') or \
+       keynm.startswith('DTECT_') or \
+       keynm.startswith('OD_'):
+      rmkeys.append( keynm )
+    elif keynm == ldpathnm:
+      if oldpathnm in env:
+        if len(env[oldpathnm]) > 0:
+          updatedvals.update({ldpathnm: env[oldpathnm]})
+        else:
+          rmkeys.append( keynm )
+        rmkeys.append( oldpathnm )
+      else:
+        pathstrs = env[keynm].split(':')
+        for pathstr in pathstrs:
+          if (len(condaprefix) > 0 and condaprefix in pathstr) or \
+             (len(condabase) > 0 and condabase in pathstr) or \
+             (os.path.exists(odpath) and odpath in pathstr):
+            continue
+          newldpaths.append( pathstr )    
+    elif keynm == 'PATH' or keynm == 'path':
+      pathstrs = env[keynm].split(':')
+      for pathstr in pathstrs:
+        if (len(condaprefix) > 0 and condaprefix in pathstr) or \
+           (len(condabase) > 0 and condabase in pathstr) or \
+           (os.path.exists(odpath) and odpath in pathstr):
+          continue
+        newpaths.append( pathstr )
+      if keynm == 'path':
+        rmkeys.append( keynm )
+    
+  if len(newpaths) > 0:
+    newpaths = list(dict.fromkeys(newpaths))
+    updatedvals.update({'PATH': ':'.join( newpaths ) })
+  if len(newldpaths) > 0:
+    newldpaths = list(dict.fromkeys(newldpaths))
+    updatedvals.update({ldpathnm: ':'.join( newldpaths ) })    
+  elif ldpathnm in env and not ldpathnm in env.keys():
+    rmkeys.append( ldpathnm )
+  rmkeys = list(dict.fromkeys(rmkeys))
+    
+  for keynm in updatedvals:
+    env[keynm] = updatedvals[keynm]
+  for keynm in rmkeys:
+    env.pop( keynm )
+    
+  return env
 
 def getPythonExecNm():
   """Python executable name
@@ -143,7 +229,7 @@ def getPythonCommand(scriptfile,posargs=None,dict=None,args=None):
   cmd = list()
   cmd.append( getPythonExecNm() )
   cmd.append( scriptfile )
-  cmd = appendDtectArgs( cmd, args )
+  cmd = appendDtectArgs( cmd, args=args )
   cmd.append( '--dtectexec' )
   cmd.append( getExecPlfDir(args) )
   if args != None and 'proclog' in args:
@@ -159,7 +245,7 @@ def getPythonCommand(scriptfile,posargs=None,dict=None,args=None):
     cmd.append( json.dumps(dict) )
   return cmd
 
-def execCommand( cmd, background=False ):
+def execCommand( cmd, background=False, env=None ):
   """Command execution
 
   Launches the execution of a command with its arguments.
@@ -168,6 +254,9 @@ def execCommand( cmd, background=False ):
     * cmd (list): command to be executed with its arguments.
     * background (bool, optional):
       The command is forked if True (default is False).
+    * env: subprocess.Popen
+      Environment to be used to run the command
+      Set to None of inherit the current process' environment
 
   Returns:
     * str: 
@@ -180,9 +269,9 @@ def execCommand( cmd, background=False ):
   """
 
   if background:
-    return startDetached( cmd )
+    return startDetached( cmd, env )
   else:
-    return startAndWait( cmd )
+    return startAndWait( cmd, env )
 
 def isRunning( proc ):
   """is the process running?
@@ -278,11 +367,12 @@ def kill( proc ):
     proc.terminate()
     proc.wait(3)
 
-def startAndWait( cmd ):
+def startAndWait( cmd, env ):
   """Run a command with subprocess
 
   Parameters:
     * cmd (list): command to be executed with its arguments.
+    * env: see subprocess.Popen
 
   Returns:
     * str:
@@ -296,7 +386,8 @@ def startAndWait( cmd ):
   """
 
   try:
-    completedproc = subprocess.run( cmd, check=True, stdout=subprocess.PIPE, \
+    completedproc = subprocess.run( cmd, check=True, env=env, \
+                                    stdout=subprocess.PIPE, \
                                     stderr=get_std_stream() ).stdout
   except subprocess.CalledProcessError as err:
     std_msg( 'Failed: ', err )
@@ -307,11 +398,12 @@ def log_subprocess_output(pipe):
     for line in iter(pipe.readline, b''):
         log_msg(line.decode('utf-8').strip('\n'))
 
-def startDetached( cmd ):
+def startDetached( cmd, env ):
   """Run a command in the background with psutil
 
   Parameters:
     * cmd (list): command to be executed with its arguments.
+    * env: see subprocess.Popen
 
   Returns:
     psutil.Popen: Object view of the process
@@ -327,12 +419,14 @@ def startDetached( cmd ):
   try:
     runningproc = None
     if isWin():
-      runningproc = psutil.Popen( cmd, stdout=subprocess.PIPE, \
-                                       stderr=subprocess.STDOUT )
+      runningproc = psutil.Popen( cmd, env=env,
+                                  stdout=subprocess.PIPE, \
+                                  stderr=subprocess.STDOUT )
     else:
-      runningproc = psutil.Popen( cmd, start_new_session=True, \
-                                       stdout=subprocess.PIPE, \
-                                       stderr=subprocess.STDOUT )
+      runningproc = psutil.Popen( cmd, env=env,
+                                  start_new_session=True, \
+                                  stdout=subprocess.PIPE, \
+                                  stderr=subprocess.STDOUT )
     t = threading.Thread(target=log_subprocess_output, args=(runningproc.stdout,))
     t.start()
   except subprocess.CalledProcessError as err:
