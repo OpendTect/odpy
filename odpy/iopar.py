@@ -50,7 +50,7 @@ def read_from_iopar( fnm, searchkey ):
   if not os.path.isfile(fnm):
     return None
 
-  with open( fnm, 'r' ) as fp:
+  with open( fnm, 'r', errors="ignore" ) as fp:
     for line in fp:
       key,val = read_line(line)
       if key == searchkey:
