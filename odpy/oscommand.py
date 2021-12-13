@@ -150,7 +150,6 @@ def getEnvForOpendTect( args=None ):
 
   for keynm in env:
     if keynm.startswith('CONDA_') or \
-       keynm.startswith('DTECT_') or \
        keynm.startswith('OD_'):
       rmkeys.append( keynm )
     elif keynm == ldpathnm:
