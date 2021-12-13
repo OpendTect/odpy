@@ -52,7 +52,7 @@ def getName( dbkey, args=None ):
   ret = oddbman.getDBDict( cmd, args=args )
   return ret['Name']
 
-def getDBKey( seisnm, reload=False, args=None ):
+def getDBKey( seisnm, reload=True, args=None ):
   """ Gets well database key
 
   Parameters:
@@ -71,7 +71,7 @@ def getDBKey( seisnm, reload=False, args=None ):
   return oddbman.getDBKeyForName(dblist, seisnm)  
 
 def get_file_location(dbname):
-    """ Gets file location of seismi data
+    """ Gets file location of seismic data
 
     Parameters:
         * dbname (str): seismic name
@@ -79,9 +79,13 @@ def get_file_location(dbname):
     Returns:
         str: full path to seismic data
     """
-
+    
     fileloc = oddbman.getFileLocation(getDBKey(dbname))
-    return iopar.read_from_iopar(fileloc, 'File name')
+    print('yes')
+    if '.sgydef' in fileloc:
+        return iopar.read_from_iopar(fileloc, 'File name')
+    else:
+        return fileloc
 
 def isPresent(dbname):
     """
