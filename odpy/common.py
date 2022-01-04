@@ -43,7 +43,6 @@ import sys
 import os
 import platform
 import logging
-import tempfile
 from datetime import datetime
 import threading
 
@@ -127,11 +126,11 @@ def set_log_file( filenm, logger ):
 
   for handler in logger.handlers:
     logger.removeHandler( handler )
-  if filenm == '<stdout>':
+  if filenm == '<stdout>' or filenm == 'stdout':
     handler = logging.StreamHandler(sys.stdout)
     logger.addHandler( handler )
     return
-  elif filenm == '<stderr>':
+  elif filenm == '<stderr>' or filenm == 'stdout':
     handler = logging.StreamHandler(sys.stderr)
     logger.addHandler( handler )
     return
@@ -573,13 +572,13 @@ def getExecPlfDir(args=None):
 
   """
 
-  if args != None and 'dtectexec' in args:
+  if args != None and 'dtectexec' in args and args['dtectexec'] != None:
     return args['dtectexec'][0]
   appldir = getODSoftwareDir()
   if isMac():
-    return os.path.join( getODSoftwareDir(), 'Contents', 'MacOS' )
+    return os.path.join( appldir, 'Contents', 'MacOS' )
   else:
-    return os.path.join( getODSoftwareDir(), 'bin', getPlfSubDir(), getBinSubDir())
+    return os.path.join( appldir, 'bin', getPlfSubDir(), getBinSubDir())
 
 def get_settings_dir():
   """Directory with the OpendTect user settings
@@ -742,11 +741,11 @@ def getODArgs(args=None):
   ret = {
     'dtectexec': [getExecPlfDir(args)]
   }
-  if args == None:
+  if args == None or ('dtectdata' in args and args['dtectdata'] == None):
     ret = add_user_dtectdata( ret )
-  elif 'dtectdata' in args:
+  elif args != None and 'dtectdata' in args:
     ret.update({'dtectdata': args['dtectdata']})
-  if args == None:
+  if args == None or ('survey' in args and args['survey'] == None):
     ret = add_user_survey( ret )
   elif args != None and 'survey' in args:
     ret.update({'survey': args['survey']})
