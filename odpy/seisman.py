@@ -81,7 +81,6 @@ def get_file_location(dbname):
     """
     
     fileloc = oddbman.getFileLocation(getDBKey(dbname))
-    print('yes')
     if '.sgydef' in fileloc:
         return iopar.read_from_iopar(fileloc, 'File name')
     else:
