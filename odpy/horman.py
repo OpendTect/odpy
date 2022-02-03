@@ -1,7 +1,7 @@
 import numpy as np
 import tempfile as tp
 import os, shutil
-
+from odpy.common import isLux, isWin
 
 def create_horizon_file(data, inl_range, crl_range):
     """ Creates horizon file in .char format
@@ -12,7 +12,7 @@ def create_horizon_file(data, inl_range, crl_range):
         * crl_range (range): of absolute (survey) crosslines range
 
     Returns:
-    * str: file name of create horizon data stored in present working directory
+    * str: file name of created horizon data stored in present working directory
     """
 
     undef = 1e+30
@@ -27,4 +27,7 @@ def create_horizon_file(data, inl_range, crl_range):
     os.close(fd)
     shutil.copy(file.name, './')
     os.remove(fpath)
-    return fpath.split('\\')[-1]
+    if isWin():
+        return fpath.split('\\')[-1]
+    elif isLux():
+        return fpath.split('/')[-1]
