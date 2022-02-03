@@ -7,7 +7,6 @@ seismanexe = 'od_DBMan'
 seisdbdirid = '100010'                                                                                                                           
 seistrlgrp = 'Seismic Data'                                                                                                                              
 dgbtrl = 'dGB'
-
 dblist = None
 
 def getSeismicDBList( reload, args=None ):
@@ -102,3 +101,47 @@ def isPresent(dbname):
         return True
     else:
         return False
+
+def show_line(data, ranges, figsize, inline=False, xline=False, Z=False):
+    """
+    Displays 2D visualization of either inline, crossline, or Z/time slice
+
+    Parameters:
+        * data (array): 3d numpy array of data (time/depth, crossline, inline)
+        * ranges (dict): specifying survey ranges (with keys inline, xline, Z)
+        * figsize (tuple): width and height specifications for figure
+        * inline, xline, Z (int): inline, xline, or time slice to be displayed
+
+    Note: either inline or xline or Z can be displayed once. other dimensions retain their default
+            False value when a dimension is selected/displayed
+
+    Returns: None (figure is displayed)
+    """
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=figsize)
+    if inline:
+        plt.imshow(data[:, :, inline], cmap='seismic_r', 
+                   extent=(ranges['xline'][0], ranges['xline'][1], 
+                           ranges['Z'][0], ranges['Z'][1]))
+    if xline:
+        plt.imshow(data[:, xline, :], cmap='seismic_r',
+                   extent=(ranges['inline'][0], ranges['inline'][1], 
+                           ranges['Z'][0], ranges['Z'][1]))
+    if Z:
+        plt.imshow(data[Z, :, :], cmap='seismic_r',
+                   extent=(ranges['xline'][0], ranges['xline'][1], 
+                           ranges['inline'][0], ranges['inline'][1]))
+
+def ConvertSegy2Numpy(filename: str):
+    """ converts segy data to numpy array
+
+    Parameters:
+        * filename (str): path to segy data in sgy or segy, zgy format
+
+    Returns:
+        * ndarray: of segy data
+    """
+    import segyio
+    with segyio.open(filename) as segyfile:
+        return segyio.tools.cube(segyfile)                           
