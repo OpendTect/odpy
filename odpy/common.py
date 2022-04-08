@@ -353,6 +353,9 @@ def reset_log_file( keeplines=0 ):
     f.write( line )
   f.close()
   set_log_file( logfnm, proclog_logger )
+  
+storedstdout = None
+storedstderr = None
 
 def redirect_stdout():
   """Stdout-stderr redirection
@@ -369,8 +372,12 @@ def redirect_stdout():
   if (logconfig is  None) or (not logging.getLogger() == logconfig.root_logger):
     return
   if has_log_file():
+    global storedstdout
+    storedstdout = sys.stdout
     sys.stdout = open( get_log_file(), 'a' )
   if has_stdlog_file():
+    global storedstderr
+    storedstderr = sys.stderr
     sys.stderr = open( get_stdlog_file(), 'a' )
 
 def restore_stdout():
@@ -383,9 +390,19 @@ def restore_stdout():
   if (logconfig is None) or (not logging.getLogger() == logconfig.root_logger):
     return
   if has_log_file():
-    sys.stdout = sys.__stdout__
+    global storedstdout
+    if storedstdout == None:
+      sys.stdout = sys.__stdout__
+    else:
+      sys.stdout = storedstdout
+      storedstdout = None
   if has_stdlog_file():
-    sys.stderr = sys.__stderr__
+    global storedstderr
+    if storedstderr == None:
+      sys.stderr = sys.__stderr__
+    else:
+      sys.stderr = storedstderr
+      storedstderr = None
 
 def isWin():
   """Is platform Windows?
