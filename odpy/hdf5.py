@@ -96,13 +96,15 @@ def getAttr( dataset, ky ):
     * KeyError (HDF5 key not found) is returned if dataset has no attribute passed
   """
 
-  try:
-    attrib = dataset.attrs[ky]
-    return np.bytes_(dataset.attrs[ky]).decode().rstrip().split("\x00")[0]
-  except KeyError:
+  if not ky in dataset.attrs:
     print( "HDF5 key not found: '"+ky+"'. Available keys:\n")
     print( list(dataset.attrs.keys()) )
-    raise
+    raise KeyError
+
+  attrib = dataset.attrs[ky]
+  if isinstance(attrib,np.ndarray):
+    return attrib[0]
+  return np.bytes_( attrib ).decode().rstrip().split("\x00")[0]
 
 def setAttr( dataset, ky, str ):
   """ Sets HDF5 dataset attribute
