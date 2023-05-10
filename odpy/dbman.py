@@ -117,6 +117,22 @@ def getInfoByKey(objkey,exenm=dbmanexe,args=None ):
   cmd.append( objkey )
   return getDBDict( cmd, args=args )
 
+def getJSONRet( bstdout ):
+  if bstdout == None:
+    return None
+  try:
+    retstr = bstdout.decode('utf-8')
+  except JSONDecodeError as e:
+    print( bstdout )
+    raise e
+  start = retstr.find('{')
+  stop = retstr.find('}')
+  if start != -1 and stop != -1:
+    retstr = retstr[start:stop+1]
+  if isWin():
+    retstr = retstr.translate(str.maketrans({"\\": r"\\"}))
+  return json.loads( retstr )
+
 def getDBDict( cmd, args=None ):
   """ Gets database dict with command
 
@@ -128,12 +144,8 @@ def getDBDict( cmd, args=None ):
 
   """
 
-  ret = execCommand( cmd, env=getEnvForOpendTect(args=args) )
-  retstr = ret.decode('utf-8')
-  if isWin():
-    retstr = retstr.translate(str.maketrans({"\\": r"\\"}))
-  ret = json.loads( retstr )
-  if ret['Status'] != 'OK':
+  ret = getJSONRet( execCommand( cmd, env=getEnvForOpendTect(args=args) ) )
+  if ret == None or ret['Status'] != 'OK':
     log_msg( ret['Status'] )
     raise FileNotFoundError
   return ret
@@ -175,13 +187,8 @@ def getDBKeyForName( dblist, retname ):
   return getByName( dblist, retname, 'IDs' )
 
 def retFileLoc( bstdout ):
-  if bstdout == None:
-    return None
-  retstr = bstdout.decode('utf-8')
-  if isWin():
-    retstr = retstr.translate(str.maketrans({"\\": r"\\"}))
-  fileloc = json.loads( retstr )
-  if fileloc['Status'] != 'OK':
+  fileloc = getJSONRet( bstdout )
+  if fileloc == None or fileloc['Status'] != 'OK':
     log_msg( fileloc['Status'] )
     raise FileNotFoundError
   return fileloc['File_name']
