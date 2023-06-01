@@ -649,7 +649,7 @@ def get_base_datadir():
 
   """
   if isWin():
-    if 'DTECT_WINDATA':
+    if 'DTECT_WINDATA' in os.environ:
       appldata = os.environ['DTECT_WINDATA']
       if os.path.isdir(appldata):
         return appldata
