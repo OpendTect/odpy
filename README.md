@@ -35,7 +35,7 @@ git clone --recursive https://github.com/OpendTect/odpy.git
 
 ## Documentation
 
-* [ody API reference](https://doc.opendtect.org/7.0.0/doc/odpy/index.html)
+* [odpy API reference](https://doc.opendtect.org/7.0.0/doc/odpy/index.html)
 
 ## Citing odpy
 
