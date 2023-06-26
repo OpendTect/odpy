@@ -33,6 +33,10 @@ To get the developer version, run
 git clone --recursive https://github.com/OpendTect/odpy.git
 ```
 
+## Documentation
+
+* [odpy API reference](https://doc.opendtect.org/7.0.0/doc/odpy/index.html)
+
 ## Citing odpy
 
 Please cite `odpy` in your publications if it helps your research.
