@@ -67,7 +67,10 @@ def getODCommand(execnm,args=None):
 
   cmd = list()
   if isLux():
-    execscr = os.path.join( getODSoftwareDir(args), 'bin', 'exec_prog' )
+    if execnm == 'od_main':
+      execscr = os.path.join( getODSoftwareDir(args), 'bin', 'start_dtect' )
+    else:
+      execscr = os.path.join( getODSoftwareDir(args), 'bin', 'exec_prog' )
     if os.path.isfile( execscr ):
       cmd.append( execscr )
   if len(cmd) == 0:
