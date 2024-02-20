@@ -22,6 +22,7 @@ setup(
         'h5py>=2.10.0',
         'numba>=0.53.1',
         'numpy>=1.19.2',
+        'odbind>=1.0.0',
         'psutil>=5.7.0',
     ],
     extras_require={
