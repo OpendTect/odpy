@@ -1,15 +1,11 @@
-from odpy.oscommand import getODCommand
 import odpy.common as odcommon
 import odpy.dbman as oddbman
 import odpy.iopar as iopar
 
-seismanexe = 'od_DBMan'                                                                                                                       
-seisdbdirid = '100010'                                                                                                                           
 seistrlgrp = 'Seismic Data'                                                                                                                              
-dgbtrl = 'dGB'
-dblist = None
+dblist = {}
 
-def getSeismicDBList( reload, args=None ):
+def getSeismicDBList( reload=False, args={} ):
     """ Gets information on available seismics from database for a survey
 
     Parameters:
@@ -22,15 +18,15 @@ def getSeismicDBList( reload, args=None ):
     """
 
     global dblist
-    if dblist != None and not reload:
+    if dblist and not reload:
         return dblist
     
-    if args == None:
+    if not args:
         args = odcommon.getODArgs()
-    dblist = oddbman.getDBList(seistrlgrp, exenm=seismanexe, args=args)
+    dblist = oddbman.getDBList(seistrlgrp, args=args)
     return dblist
 
-def getName( dbkey, args=None ):
+def getName( dbkey, args={} ):
   """ Gets seismic name
 
   Parameters:
@@ -45,13 +41,10 @@ def getName( dbkey, args=None ):
 
   """
 
-  cmd = getODCommand(seismanexe,args=args)
-  cmd.append( '--info' )
-  cmd.append( dbkey )
-  ret = oddbman.getDBDict( cmd, args=args )
+  ret = oddbman.getInfoByKey(dbkey, args)
   return ret['Name']
 
-def getDBKey( seisnm, reload=True, args=None ):
+def getDBKey( seisnm, args={} ):
   """ Gets well database key
 
   Parameters:
@@ -65,9 +58,8 @@ def getDBKey( seisnm, reload=True, args=None ):
     str: Database key for seismic name provided
   """
 
-  global dblist
-  dblist = getSeismicDBList(reload,args)
-  return oddbman.getDBKeyForName(dblist, seisnm)  
+  ret = oddbman.getInfoByName(seisnm, seistrlgrp, args)
+  return ret['ID']  
 
 def get_file_location(dbname):
     """ Gets file location of seismic data
@@ -96,11 +88,7 @@ def isPresent(dbname):
         bool: True if seismic data is found in survey, False if otherwise
     """
 
-    dblist = getSeismicDBList(reload=False)
-    if dbname in dblist['Names']:
-        return True
-    else:
-        return False
+    return oddbman.isPresent(dbname, seistrlgrp)
 
 def show_line(data, ranges, figsize, inline=False, xline=False, Z=False):
     """

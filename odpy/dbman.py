@@ -1,32 +1,39 @@
 import json
 
-from odpy.common import isWin, log_msg
-from odpy.oscommand import getODCommand, execCommand, getEnvForOpendTect
+import odbind as odb
+from odbind.survey import Survey
 
-dbmanexe = 'od_DBMan'
-
-def getDBList(translnm,alltrlsgrps=False,exenm=dbmanexe,args=None):
-  """ Gets information on survey database wells
+def getSurvey( args={} ):
+  """Return an odbind.Survey instance using the content of args , falling bask to the current users 
+  settings for base data folder and current survey.
 
   Parameters:
-    * translnm (string): default value='Well'
-    * alltrlsgrps (bool): if True, returns information on TranslatorGroups for available wells
-    * exenm (string): database executable file
     * args (dict, optional):
       Dictionary with the members 'dtectdata' and 'survey' as 
       single element lists, and/or 'dtectexec' (see odpy.common.getODSoftwareDir)
 
   Returns:
-    * dict: Dictionary containing database survey well information (size, IDs, Names, Formats, Status)
+    odbind.Survey
+
+  """
+  return Survey(args.get('survey',[odb.get_user_survey()])[0], args.get('dtectdata', [None])[0])
+
+def getDBList(translnm,alltrlsgrps=False,args={}):
+  """ Gets information on survey database items
+
+  Parameters:
+    * translnm (string): 
+    * alltrlsgrps (bool): if True, returns information on all translators in the TranslatorGroup
+    * args (dict, optional):
+      Dictionary with the members 'dtectdata' and 'survey' as 
+      single element lists, and/or 'dtectexec' (see odpy.common.getODSoftwareDir)
+
+  Returns:
+    * list[dict]: List of Python dictionaries containing database information {ID, Name, Format, TranslatorGroup, File name}
   """
 
-  cmd = getODCommand(exenm,args=args)
-  cmd.append( '--json' )
-  if alltrlsgrps:
-    cmd.append( '--all' )
-  cmd.append( '--list' )
-  cmd.append( translnm )
-  return getDBDict( cmd, args=args )
+  surv = getSurvey(args)
+  return surv.get_object_infos(translnm, alltrlsgrps)
 
 def getInfoFromDBListByNameOrKey(nm_or_key,dblist):
   """ Gets info from database list with obj key or name
@@ -39,34 +46,15 @@ def getInfoFromDBListByNameOrKey(nm_or_key,dblist):
     * dict: info on database object (Name,ID, Format, Type, TranslatorGroup iff available)
   """
 
-  for i in range(len(dblist['Names'])):
-    dbobjnm = dblist['Names'][i]
-    objid = dblist['IDs'][i]
-    objfmt = dblist['Formats'][i]
-    if dbobjnm != nm_or_key and objid != nm_or_key:
-      continue
-    if 'TranslatorGroups' in dblist:
-      objtrlgrp = dblist['TranslatorGroups'][i]
-    if 'Types' in dblist:
-      objtyp = dblist['Types'][i]
-    ret = {
-      'ID': objid,
-      'Name': dbobjnm,
-      'Format': objfmt,
-    }
-    if len(objtrlgrp) > 0:
-      ret.update({'TranslatorGroup': objtrlgrp})
-    if len(objtyp) > 0:
-      ret.update({'Type': objtyp})
-    return ret
-
-def getInfoByName(objnm,translnm,exenm=dbmanexe,args=None ):
+  ret = list(filter(lambda item: item['ID']==nm_or_key or item['Name']==nm_or_key, dblist))
+  return ret[0] if len(ret)>0 else {}
+  
+def getInfoByName(objnm,translnm=None, args={} ):
   """ Gets object info by name
 
   Parameters:
     * objnm (str): database object to get info on
     * translnm (str):
-    * exenm (str): executable file, defaults to dbmanexe=od_DBMan
     * args (dict, optional):
       Dictionary with the members 'dtectdata' and 'survey' as 
       single element lists, and/or 'dtectexec' (see odpy.common.getODSoftwareDir)
@@ -81,28 +69,21 @@ def getInfoByName(objnm,translnm,exenm=dbmanexe,args=None ):
        'Name': 'F02-1',
        'Format': 'dGB',
        'TranslatorGroup': 'Well',
-       'File_name': 'C:\\Users\\OLAWALE IBRAHIM\\DTECT_DATA\\F3_Demo_2020\\WellInfo\\F02-1.well',
+       'File_name': 'C:\\DTECT_DATA\\F3_Demo_2020\\WellInfo\\F02-1.well',
        'Status': 'OK'}
 
   """
-
-  cmd = getODCommand(exenm,args=args)
-  cmd.append( '--json' )
-  cmd.append( '--exists' )
-  cmd.append( objnm )
-  cmd.append( '--trl-grp' )
-  cmd.append( translnm )
-  ret = getDBDict( cmd, args=args )
+  surv = getSurvey(args)
+  ret = surv.get_object_info(objnm, translnm)
   if not 'ID' in ret:
     return None
   return ret
 
-def getInfoByKey(objkey,exenm=dbmanexe,args=None ):
+def getInfoByKey(objkey,args={} ):
   """ Gets datbase info on well
 
   Parameters:
     * objkey (str): well ID key
-    * exenm (str): executable file name
     * args (dict, optional):
       Dictionary with the members 'dtectdata' and 'survey' as 
       single element lists, and/or 'dtectexec' (see odpy.common.getODSoftwareDir)
@@ -111,43 +92,10 @@ def getInfoByKey(objkey,exenm=dbmanexe,args=None ):
     dict: file info (ID, Name, Format, File name, etc)
   """
 
-  cmd = getODCommand(exenm,args=args)
-  cmd.append( '--json' )
-  cmd.append( '--info' )
-  cmd.append( objkey )
-  return getDBDict( cmd, args=args )
-
-def getJSONRet( bstdout ):
-  if bstdout == None:
+  surv = getSurvey(args)
+  ret = surv.get_object_info_byid(objkey)
+  if not 'ID' in ret:
     return None
-  try:
-    retstr = bstdout.decode('utf-8')
-  except JSONDecodeError as e:
-    print( bstdout )
-    raise e
-  start = retstr.find('{')
-  stop = retstr.find('}')
-  if start != -1 and stop != -1:
-    retstr = retstr[start:stop+1]
-  if isWin():
-    retstr = retstr.translate(str.maketrans({"\\": r"\\"}))
-  return json.loads( retstr )
-
-def getDBDict( cmd, args=None ):
-  """ Gets database dict with command
-
-  Parameters:
-    * cmd (str): command to be executed
-    * args (dict, optional):
-      Dictionary with the members 'dtectdata' and 'survey' as 
-      single element lists, and/or 'dtectexec' (see odpy.common.getODSoftwareDir)
-
-  """
-
-  ret = getJSONRet( execCommand( cmd, env=getEnvForOpendTect(args=args) ) )
-  if ret == None or ret['Status'] != 'OK':
-    log_msg( ret['Status'] )
-    raise FileNotFoundError
   return ret
 
 def getByName( dblist, retname, keystr ):
@@ -164,13 +112,12 @@ def getByName( dblist, retname, keystr ):
   Example:
   
   >>> import odpy.dbman as dbman
-  >>> dbman.getByName(dblist, 'F03-4', 'IDs')
+  >>> dbman.getByName(dblist, 'F03-4', 'ID')
       '100050.4'
 
   """
-
-  curentryidx = dblist['Names'].index( retname )
-  return dblist[keystr][curentryidx]
+  ret = getInfoFromDBListByNameOrKey(retname, dblist)
+  return ret.get(keystr, None)
 
 def getDBKeyForName( dblist, retname ):
   """ Gets object ID key from database info
@@ -184,16 +131,9 @@ def getDBKeyForName( dblist, retname ):
 
   """
 
-  return getByName( dblist, retname, 'IDs' )
+  return getByName( dblist, retname, 'ID' )
 
-def retFileLoc( bstdout ):
-  fileloc = getJSONRet( bstdout )
-  if fileloc == None or fileloc['Status'] != 'OK':
-    log_msg( fileloc['Status'] )
-    raise FileNotFoundError
-  return fileloc['File_name']
-
-def getFileLocation( dbkey, args=None ):
+def getFileLocation( dbkey, args={} ):
   """  Gets full file path
 
   Parameters:
@@ -207,35 +147,49 @@ def getFileLocation( dbkey, args=None ):
 
   """
 
-  cmd = getODCommand(dbmanexe,args=args)
-  cmd.append( '--json' )
-  cmd.append( '--info' )
-  cmd.append( dbkey )
-  return retFileLoc( execCommand(cmd,env=getEnvForOpendTect(args=args)) )
+  return getInfoByKey(dbkey, args=args).get('File name', None)
 
-def getNewEntryFileName( objnm, dirid, trgrp, trl, ext, ftype=None, args=None ):
+def getNewEntryFileName( objnm, trgrp, trl, overwrite=False, args={} ):
   """ Registers a new OpendTect dataset to database
 
   Parameters:
-    * objnm (str): file name
-    * dirid  (internal: int)
-    * trgrp (str): TranslatorGroup e.g. Well, Seismic, etc
-    * ext (str): file extension
+    * objnm (str): the object name
+    * trgrp (str): TranslatorGroup e.g. Well, Seismic Data, etc
+    * trl (str): Translator e.g. CBVS
 
   Returns:
     * file path to the object created with write permission
 
   """
 
-  cmd = getODCommand(dbmanexe,args=args)
-  cmd.append( '--create' )
-  cmd.append( objnm )
-  cmd.append( dirid )
-  cmd.append( trgrp )
-  cmd.append( trl )
-  cmd.append( ext )
-  if ftype != None:
-      cmd.append( ftype )
-  cmd.append( '--json' )
-  return retFileLoc( execCommand(cmd,env=getEnvForOpendTect(args=args)) )
+  surv = getSurvey(args)
+  surv.create_object(objnm, trgrp, trl, overwrite)
+  newobj = surv.get_object_info(objnm, trgrp)
+  return newobj['File name']
 
+def removeEntry(objname, trgrp=None, args={}):
+  """ Remove the OpendTect dataset from the database
+
+  Parameters:
+    * objname (str): the object name
+    * trgrp (str)=None: TranslatorGroup
+
+  """
+
+  surv = getSurvey(args)
+  surv.remove_object(objname, trgrp)
+
+def isPresent(objname, trgrp=None, args={}):
+  """ Checks if an OpendTect dataset exists in the database
+
+  Parameters:
+    * objname (str): the object name
+    * trgrp (str)=None: TranslatorGroup
+
+  Returns:
+    * True if the object exists, False otherwise
+  
+  """
+
+  surv = getSurvey(args)
+  return surv.has_object(objname, trgrp)

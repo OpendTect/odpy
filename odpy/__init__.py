@@ -6,4 +6,4 @@ Copyright (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.
 
 """
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
