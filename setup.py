@@ -22,12 +22,12 @@ setup(
         'h5py>=2.10.0',
         'numba>=0.53.1',
         'numpy>=1.19.2',
-        'odbind>=1.0.0',
         'psutil>=5.7.0',
     ],
     extras_require={
         'humanfriendly': ['humanfriendly>=9.2.0'],
         'matplotlib': ['matplotlib>=3.0.0'],
+        'odbind': ['odbind>=1.0.0'],
     },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
