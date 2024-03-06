@@ -18,7 +18,7 @@ General Example:
 
   >>> def launchApp(execnm, args=None):
         return execCommand(getODCommand(execnm,args=args),env=getEnvForOpendTect())
-  >>> launchApp(od_DBMan)          #od_DBMan is executable used by odpy.dbman
+  >>> launchApp(od_remoteservice)
 
 """
 
