@@ -562,7 +562,8 @@ def getMacFrameworkDir():
         return
     
     appldir = getODSoftwareDir()
-    return os.path.join( appldir, 'Contents', 'Frameworks' )
+    frameworkdir =  os.path.join( appldir, 'Frameworks' )
+    return frameworkdir
 
 def getODBinaryDir( srcpath ):
     """Get the binary directory from the source directory
