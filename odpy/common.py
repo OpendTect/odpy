@@ -549,6 +549,22 @@ def getODSoftwareDir(args=None):
       return getODBinaryDir(curdir)
   return curdir
 
+def getMacFrameworkDir():
+    """Get the framework directory from the source directory.
+       Only useful for macos environments
+
+    Returns
+    -------
+    Full path to OpendTect framework directory
+
+    """
+    if not isMac():
+        return
+    
+    appldir = getODSoftwareDir()
+    frameworkdir =  os.path.join( appldir, 'Frameworks' )
+    return frameworkdir
+
 def getODBinaryDir( srcpath ):
     """Get the binary directory from the source directory
        Only useful for development environments
