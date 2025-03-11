@@ -544,7 +544,7 @@ def findODSoftwareDir():
   maxrecur = 15
   relinfodir = 'relinfo'
 
-  envpaths = os.environ['PATH', ''].split(os.pathsep)
+  envpaths = os.environ.get('PATH', '').split(os.pathsep)
   expectedpathend = getPlfSpecDir()
   for path in envpaths:  
     if path.endswith(expectedpathend):
