@@ -593,7 +593,7 @@ def getExecPlfDir(args=None):
     return args['dtectexec'][0]
   appldir = getODSoftwareDir()
   if isMac():
-    return os.path.join( appldir, 'Contents', 'MacOS' )
+    return os.path.join( appldir, 'MacOS' )
   else:
     return os.path.join( appldir, 'bin', getPlfSubDir(), getBinSubDir())
   
