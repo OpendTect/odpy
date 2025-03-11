@@ -549,22 +549,6 @@ def getODSoftwareDir(args=None):
       return getODBinaryDir(curdir)
   return curdir
 
-def getMacFrameworkDir():
-    """Get the framework directory from the source directory.
-       Only useful for macos environments
-
-    Returns
-    -------
-    Full path to OpendTect framework directory
-
-    """
-    if not isMac():
-        return
-    
-    appldir = getODSoftwareDir()
-    frameworkdir =  os.path.join( appldir, 'Frameworks' )
-    return frameworkdir
-
 def getODBinaryDir( srcpath ):
     """Get the binary directory from the source directory
        Only useful for development environments
@@ -612,6 +596,27 @@ def getExecPlfDir(args=None):
     return os.path.join( appldir, 'Contents', 'MacOS' )
   else:
     return os.path.join( appldir, 'bin', getPlfSubDir(), getBinSubDir())
+  
+def getLibPlfDir(args=None):
+  """OpendTect libraries directory
+
+  Parameters:
+    * args (dict, optional):
+      Dictionary with the member 'dtectexec'. The value
+      for that member should point to the executables folder
+      of the requested application
+
+  Returns:
+    * str: Full path to the libraries of an OpendTect installation
+  """
+
+  if args != None and 'dtectexec' in args and args['dtectexec'] != None:
+    return args['dtectexec'][0]
+  appldir = getODSoftwareDir()
+  if isMac():
+    return os.path.join( appldir, 'Frameworks' )
+  else:
+    return getExecPlfDir(args)
 
 def get_settings_dir():
   """Directory with the OpendTect user settings
