@@ -543,17 +543,21 @@ def findODSoftwareDir():
   curdir = os.path.dirname( __file__)
   maxrecur = 15
   relinfodir = 'relinfo'
+  expectedpathend = getPlfSpecDir()
+
 
   if isMac():
     relinfodir = os.path.join('Resources',relinfodir)
 
-  for _ in range(3):
+  for _ in range(4):
     curdir = os.path.dirname(curdir)
+    if curdir.endswith(expectedpathend):
+      break
+
   if os.path.isdir(os.path.join(curdir, relinfodir)):
       return curdir
 
   envpaths = os.environ.get('PATH', '').split(os.pathsep)
-  expectedpathend = getPlfSpecDir()
   for path in envpaths:  
     if path.endswith(expectedpathend):
       while not os.path.isdir(os.path.join(path,relinfodir)) and maxrecur > 0:
