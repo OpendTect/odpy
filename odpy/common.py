@@ -536,34 +536,39 @@ def getODSoftwareDir(args=None):
     applenvvar = 'DTECT_WINAPPL'
   if applenvvar in os.environ:
     return os.environ[applenvvar]
-  curdir = os.path.dirname( __file__ )
+  appldir = findODSoftwareDir()
+  return appldir
+
+def findODSoftwareDir():
+  curdir = os.path.dirname( __file__)
   maxrecur = 15
   relinfodir = 'relinfo'
+  expectedpathend = getPlfSpecDir()
+
+
   if isMac():
     relinfodir = os.path.join('Resources',relinfodir)
-  while not os.path.isdir(os.path.join(curdir,relinfodir)) and maxrecur > 0:
-    curdir = os.path.dirname( curdir )
-    maxrecur = maxrecur-1
+
+  for _ in range(4):
+    curdir = os.path.dirname(curdir)
+    if curdir.endswith(expectedpathend):
+      break
+
+  if os.path.isdir(os.path.join(curdir, relinfodir)):
+      return curdir
+
+  envpaths = os.environ.get('PATH', '').split(os.pathsep)
+  for path in envpaths:  
+    if path.endswith(expectedpathend):
+      while not os.path.isdir(os.path.join(path,relinfodir)) and maxrecur > 0:
+        curdir = os.path.dirname( path )
+        maxrecur = maxrecur-1
+      break
+  
   devfile = os.path.join( curdir, 'CTestConfig.cmake' )
   if os.path.isfile(devfile):
       return getODBinaryDir(curdir)
   return curdir
-
-def getMacFrameworkDir():
-    """Get the framework directory from the source directory.
-       Only useful for macos environments
-
-    Returns
-    -------
-    Full path to OpendTect framework directory
-
-    """
-    if not isMac():
-        return
-    
-    appldir = getODSoftwareDir()
-    frameworkdir =  os.path.join( appldir, 'Frameworks' )
-    return frameworkdir
 
 def getODBinaryDir( srcpath ):
     """Get the binary directory from the source directory
@@ -582,6 +587,17 @@ def getODBinaryDir( srcpath ):
     if 'DTECT_APPL' in os.environ:
         return os.environ['DTECT_APPL']
     return srcpath
+
+def getPlfSpecDir():
+  """OpendTect specific directory for a particular platform
+
+  Returns:
+    * str: Full path to the OpendTect specific directory
+
+  """
+  if isMac():
+    return 'MacOS'
+  return os.path.join( 'bin', getPlfSubDir(), getBinSubDir() )
 
 def getExecPlfDir(args=None):
   """OpendTect executables directory
@@ -608,10 +624,28 @@ def getExecPlfDir(args=None):
   if args != None and 'dtectexec' in args and args['dtectexec'] != None:
     return args['dtectexec'][0]
   appldir = getODSoftwareDir()
+  return os.path.join( appldir, getPlfSpecDir() )
+  
+def getLibPlfDir(args=None):
+  """OpendTect libraries directory
+
+  Parameters:
+    * args (dict, optional):
+      Dictionary with the member 'dtectexec'. The value
+      for that member should point to the executables folder
+      of the requested application
+
+  Returns:
+    * str: Full path to the libraries of an OpendTect installation
+  """
+
+  if args != None and 'dtectexec' in args and args['dtectexec'] != None:
+    return args['dtectexec'][0]
+  appldir = getODSoftwareDir()
   if isMac():
-    return os.path.join( appldir, 'Contents', 'MacOS' )
+    return os.path.join( appldir, 'Frameworks' )
   else:
-    return os.path.join( appldir, 'bin', getPlfSubDir(), getBinSubDir())
+    return getExecPlfDir(args)
 
 def get_settings_dir():
   """Directory with the OpendTect user settings
