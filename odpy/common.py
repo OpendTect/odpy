@@ -540,25 +540,27 @@ def getODSoftwareDir(args=None):
   return appldir
 
 def findODSoftwareDir():
-  curdir = None
+  curdir = os.path.dirname( __file__)
   maxrecur = 15
   relinfodir = 'relinfo'
+
+  if isMac():
+    relinfodir = os.path.join('Resources',relinfodir)
+
+  for _ in range(3):
+    curdir = os.path.dirname(curdir)
+  if os.path.isdir(os.path.join(curdir, relinfodir)):
+      return curdir
 
   envpaths = os.environ.get('PATH', '').split(os.pathsep)
   expectedpathend = getPlfSpecDir()
   for path in envpaths:  
     if path.endswith(expectedpathend):
-      curdir = path
+      while not os.path.isdir(os.path.join(path,relinfodir)) and maxrecur > 0:
+        curdir = os.path.dirname( path )
+        maxrecur = maxrecur-1
       break
-
-  if curdir == None:
-    raise Exception('Could not find OpendTect installation directory')
   
-  if isMac():
-    relinfodir = os.path.join('Resources',relinfodir)
-  while not os.path.isdir(os.path.join(curdir,relinfodir)) and maxrecur > 0:
-    curdir = os.path.dirname( curdir )
-    maxrecur = maxrecur-1
   devfile = os.path.join( curdir, 'CTestConfig.cmake' )
   if os.path.isfile(devfile):
       return getODBinaryDir(curdir)
