@@ -15,10 +15,7 @@ KEY methods
 * getODsoftwareDir()
 
   * gets the root directory of the Opendtect installation
-* getBinSubDir()
 
-  * binary sub directory for executables in an OpendTect installation
-  * returns information on the release type
 * getODargs()
 
   * get dict containing information about the Opendtect executable, project database path and current survey name
@@ -27,10 +24,9 @@ Example
 --------
 >>> import odpy.common as odcommon
 >>> odcommon.getODSoftwareDir()
-    'C:\\PROGRA~1\\OPENDT~1\\new\\6683E8~1.0'
-
->>> odcommon.getBinSubDir()
-    'Release'
+    Windows: 'C:\\Program Files\\OpendTect\\2025'
+    Linux: '/home/user/OpendTect/2025'
+    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents'
 
 >>> odcommon.getODArgs()
     {'dtectexec': ['C:\\PROGRA~1\\OPENDT~1\\new\\6683E8~1.0\\bin\\win64\\Release'],
@@ -44,6 +40,7 @@ import os
 import platform
 import logging
 from datetime import datetime
+from enum import Enum
 import threading
 
 def sTimeUnitString( ismilli=False, abbr=True ):
@@ -437,66 +434,10 @@ def isMac():
 if platform.python_version() < "3":
   std_msg( "odpy requires at least Python 3" )
   sys.exit( 1 )
-
-def getPlfSubDir():
-  """Platform sub-directory
-
-  Platform specific sub-directory as existing
-  in an OpendTect software installation
   
-  Returns:
-    * str: string like: 'lux64', 'win64', 'mac'.
-      None if the platform is not supported by OpendTect
-
-  """
-
-  system = platform.system()
-  arch = platform.architecture()[0]
-  if system == 'Linux':
-    if arch == '64bit':
-      return 'lux64'
-    else:
-      return None
-  elif system == 'Windows':
-    if arch == '64bit':
-      return 'win64'
-    else:
-      return 'win32'
-  elif system == 'Darwin':
-    if arch == '64bit':
-      return 'mac'
-    else:
-      return None
-  else:
-    return None
-
-def getBinSubDir():
-  """Binary sub-directory
-
-  Sub-directory containing the executables in an OpendTect installation
-
-  Returns:
-    * str: string like: 'Debug', 'Release', 'RelWithDebInfo'. 
-      None if no such sub-directory is found.
-
-  Notes:
-    Assumes that the OpendTect installation contains the 
-    executable 'od_FileBrowser', and that this installation can
-    be located by the function getODSoftwareDir()
-
-  """
-
-  if isMac():
-    return None
-  plfsubdirfp = os.path.join( getODSoftwareDir(), 'bin', getPlfSubDir() )
-  execnm = 'od_FileBrowser'
-  if isWin():
-    execnm = execnm+'.exe'
-  reltypes = ('Release','RelWithDebInfo','Debug')
-  for reltype in reltypes:
-    if os.path.isfile( os.path.join(plfsubdirfp,reltype,execnm) ):
-      return reltype
-  return None
+def isPossibleODSoftwareDir( curdir ):
+  relinfodir = 'relinfo'
+  return os.path.isdir( os.path.join(curdir, relinfodir) )
 
 def getODSoftwareDir(args=None):
   """OpendTect sofware directory
@@ -511,95 +452,70 @@ def getODSoftwareDir(args=None):
     * str: Full path to the OpendTect software installation
 
   Notes:
-    * Retrieved from either the input dictionary
-      or from the current environment by reading
-      the 'DTECT_APPL' or 'DTECT_WINAPPL' variables which
-      are set by OpendTect at runtime.
-    * Neither dictionary nor environment variables need to be set
-      if the current module is placed within an OpendTect installation
+    * First search method: retrieved from the input dictionary.
+    * Second search method:  if odpy is located within an OpendTect
+      installation, the path to this installation will be returned.
+    * Third search method: retrieved by reading the 'DTECT_APPL'
+      variables which are set by OpendTect at runtime.
+    * Fourth search method: If all everything else fails, the PATH
+      variable will be inspected to detect available OpendTect
+      installations.
 
   Examples:
     >>> getODSoftwareDir()
-    'C:\\Program Files\\OpendTect\\6.6.0'
+    Windows: 'C:\\Program Files\\OpendTect\\2025'
+    Linux: '/home/user/OpendTect/2025'
+    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents'
 
   """
 
   if args != None and 'dtectexec' in args:
     appldir = getExecPlfDir(args)
-    for i in range(3):
-      if os.path.isdir(appldir):
-        appldir = os.path.dirname( appldir )
-    if os.path.isdir( appldir):
-      return appldir
+    for i in range(5):
+      if isPossibleODSoftwareDir( appldir ):
+        return appldir
+      appldir = os.path.dirname(appldir)
+  
+  curdir = __file__
+  for _ in range(4):
+    curdir = os.path.dirname( curdir )
+  if isPossibleODSoftwareDir( curdir ):
+    return curdir
+
   applenvvar = 'DTECT_APPL'
-  if isWin():
-    applenvvar = 'DTECT_WINAPPL'
   if applenvvar in os.environ:
     return os.environ[applenvvar]
-  appldir = findODSoftwareDir()
-  return appldir
+ 
+  return findODSoftwarePath()
 
-def findODSoftwareDir():
-  curdir = os.path.dirname( __file__)
-  maxrecur = 15
-  relinfodir = 'relinfo'
-  expectedpathend = getPlfSpecDir()
-
-
-  if isMac():
-    relinfodir = os.path.join('Resources',relinfodir)
-
-  for _ in range(4):
-    curdir = os.path.dirname(curdir)
-    if curdir.endswith(expectedpathend):
-      break
-
-  if os.path.isdir(os.path.join(curdir, relinfodir)):
-      return curdir
+def findODSoftwarePath():
+  if isWin():
+    expectedpathends = [os.path.join("bin", "win64", "Release"),
+                       os.path.join("bin", "win64", "Debug")]
+  elif isLux():
+    expectedpathends = [os.path.join("bin", "lux64", "Release"),
+                       os.path.join("bin", "lux64", "Debug")]
+  elif isMac():
+    expectedpathends = [os.path.join("MacOS"),
+                       os.path.join("MacOS", "Debug")]
 
   envpaths = os.environ.get('PATH', '').split(os.pathsep)
-  for path in envpaths:  
-    if path.endswith(expectedpathend):
-      while not os.path.isdir(os.path.join(path,relinfodir)) and maxrecur > 0:
-        curdir = os.path.dirname( path )
-        maxrecur = maxrecur-1
-      break
-  
-  devfile = os.path.join( curdir, 'CTestConfig.cmake' )
-  if os.path.isfile(devfile):
-      return getODBinaryDir(curdir)
-  return curdir
+  for path in envpaths:
+    for expectedpathend in expectedpathends:
+      if path.endswith(expectedpathend):
+        for _ in range(5):
+          if isPossibleODSoftwareDir( path ):
+            return path
+          path = os.path.dirname(path)
 
-def getODBinaryDir( srcpath ):
-    """Get the binary directory from the source directory
-       Only useful for development environments
+  return None
 
-    Parameters
-    ----------
-    srcpath : Full path to a directory
-        Path to the OpendTect source directory, configured with cmake
+class BuildConfig(Enum):
+  AUTO = 0
+  Release = 1
+  Debug = 2
 
-    Returns
-    -------
-    Full path to OpendTect binary directory
-
-    """
-    if 'DTECT_APPL' in os.environ:
-        return os.environ['DTECT_APPL']
-    return srcpath
-
-def getPlfSpecDir():
-  """OpendTect specific directory for a particular platform
-
-  Returns:
-    * str: Full path to the OpendTect specific directory
-
-  """
-  if isMac():
-    return 'MacOS'
-  return os.path.join( 'bin', getPlfSubDir(), getBinSubDir() )
-
-def getExecPlfDir(args=None):
+def getExecPlfDir(args=None, config=BuildConfig.AUTO):
   """OpendTect executables directory
 
   Parameters:
@@ -617,17 +533,54 @@ def getExecPlfDir(args=None):
 
   Examples:
     >>> getExecPlfDir()
-    'C:\\Program Files\\OpendTect\\6.6.0\\bin\\win64\\Release'
+    Windows: 'C:\\Program Files\\OpendTect\\2025\\bin\\win64\\Release'
+    Linux: '/home/user/OpendTect/2025/bin/lux64/Release'
+    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents/MacOS'
 
   """
 
   if args != None and 'dtectexec' in args and args['dtectexec'] != None:
     return args['dtectexec'][0]
+
+  if config==BuildConfig.AUTO:
+    relexecpath = getExecPlfDir( args, BuildConfig.Release )
+    if relexecpath == None:
+      return getExecPlfDir( args, BuildConfig.Debug )
+    return relexecpath
+
   appldir = getODSoftwareDir()
-  return os.path.join( appldir, getPlfSpecDir() )
+  paths = [] 
   
-def getLibPlfDir(args=None):
-  """OpendTect libraries directory
+  if isWin():
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("bin", "win64", "Release", "od_FileBrowser.exe") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("bin", "win64", "Debug", "od_FileBrowserd.exe") )
+      paths.append( os.path.join("bin", "win64", "Debug", "od_FileBrowser.exe") )
+  
+  elif isLux(): 
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("bin", "lux64", "Release", "od_FileBrowser") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("bin", "lux64", "Debug", "od_FileBrowserd") )
+      paths.append( os.path.join("bin", "lux64", "Debug", "od_FileBrowser") )
+  
+  elif isMac():
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("MacOS", "od_FileBrowser") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("MacOS", "Debug", "od_FileBrowserd") )
+      paths.append( os.path.join("MacOS", "Debug", "od_FileBrowser") )
+
+  for path in paths:
+    fullpath = os.path.join(appldir, path)
+    if os.path.isfile(fullpath):
+      return os.path.dirname(fullpath)
+
+  return None
+  
+def getLibPlfDir(args=None, config=BuildConfig.AUTO):
+  """OpendTect link libraries directory
 
   Parameters:
     * args (dict, optional):
@@ -637,15 +590,51 @@ def getLibPlfDir(args=None):
 
   Returns:
     * str: Full path to the libraries of an OpendTect installation
+
+  Examples:
+    >>> getLibPlfDir()
+    Windows: 'C:\\Program Files\\OpendTect\\2025\\bin\\win64\\Release'
+    Linux: '/home/user/OpendTect/2025/bin/lux64/Release'
+    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents/Frameworks'
+  
   """
 
-  if args != None and 'dtectexec' in args and args['dtectexec'] != None:
-    return args['dtectexec'][0]
+  if config==BuildConfig.AUTO:
+    rellibpath = getLibPlfDir( args, BuildConfig.Release )
+    if rellibpath == None:
+      return getLibPlfDir( args, BuildConfig.Debug )
+    return rellibpath
+
   appldir = getODSoftwareDir()
-  if isMac():
-    return os.path.join( appldir, 'Frameworks' )
-  else:
-    return getExecPlfDir(args)
+  paths = [] 
+  
+  if isWin():
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("bin", "win64", "Release", "Basic.dll") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("bin", "win64", "Debug", "Basicd.dll") )
+      paths.append( os.path.join("bin", "win64", "Debug", "Basic.dll") )
+  
+  elif isLux(): 
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("bin", "lux64", "Release", "libBasic.so") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("bin", "lux64", "Debug", "libBasicd.so") )
+      paths.append( os.path.join("bin", "lux64", "Debug", "libBasic.so") )
+  
+  elif isMac():
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("Frameworks", "libBasic.dylib") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("Frameworks", "Debug", "libBasicd.dylib") )
+      paths.append( os.path.join("Frameworks", "Debug", "libBasic.dylib") )
+
+  for path in paths:
+    fullpath = os.path.join(appldir, path)
+    if os.path.isfile(fullpath):
+      return os.path.dirname(fullpath)
+
+  return None
 
 def get_settings_dir():
   """Directory with the OpendTect user settings
