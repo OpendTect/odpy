@@ -437,7 +437,15 @@ if platform.python_version() < "3":
   
 def isPossibleODSoftwareDir( curdir ):
   relinfodir = 'relinfo'
-  return os.path.isdir( os.path.join(curdir, relinfodir) )
+  if not isMac():
+    appldir = os.path.join(curdir, relinfodir)
+    return os.path.isdir(appldir)
+  
+  appldir = os.path.join(curdir, "Resources", relinfodir)
+  if os.path.isdir(appldir):
+    return True
+  return False
+
 
 def getODSoftwareDir(args=None):
   """OpendTect sofware directory
@@ -479,8 +487,8 @@ def getODSoftwareDir(args=None):
   curdir = __file__
   for _ in range(4):
     curdir = os.path.dirname( curdir )
-  if isPossibleODSoftwareDir( curdir ):
-    return curdir
+    if isPossibleODSoftwareDir( curdir ):
+      return curdir
 
   applenvvar = 'DTECT_APPL'
   if applenvvar in os.environ:
@@ -505,9 +513,8 @@ def findODSoftwarePath():
       if path.endswith(expectedpathend):
         for _ in range(5):
           if isPossibleODSoftwareDir( path ):
-            return path
+            return path 
           path = os.path.dirname(path)
-
   return None
 
 class BuildConfig(Enum):
