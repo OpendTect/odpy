@@ -586,6 +586,63 @@ def getExecPlfDir(args=None, config=BuildConfig.AUTO):
 
   return None
   
+def getODBindLib(args=None, config=BuildConfig.AUTO):
+  """OpendTect ODBind link library path
+
+  Parameters:
+    * args (dict, optional):
+      Dictionary with the member 'dtectexec'. The value
+      for that member should point to the executables folder
+      of the requested application
+
+  Returns:
+    * str: Full path to the ODBind library of an OpendTect installation
+
+  Examples:
+    >>> getODBindLib()
+    Windows: 'C:\\Program Files\\OpendTect\\2025\\bin\\win64\\Release\\ODBind.dll'
+    Linux: '/home/user/OpendTect/2025/bin/lux64/Release/libODBind.so'
+    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents/Frameworks/libODBind.dylib'
+  
+  """
+
+  if config==BuildConfig.AUTO:
+    odb_path = getODBindLib( args, BuildConfig.Release )
+    if odb_path == None:
+      return getODBindLib( args, BuildConfig.Debug )
+    return odb_path
+
+  appldir = getODSoftwareDir()
+  paths = [] 
+  
+  if isWin():
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("bin", "win64", "Release", "ODBind.dll") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("bin", "win64", "Debug", "ODBindd.dll") )
+      paths.append( os.path.join("bin", "win64", "Debug", "ODBind.dll") )
+  
+  elif isLux(): 
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("bin", "lux64", "Release", "libODBind.so") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("bin", "lux64", "Debug", "libODBindd.so") )
+      paths.append( os.path.join("bin", "lux64", "Debug", "libODBind.so") )
+  
+  elif isMac():
+    if config == BuildConfig.Release:
+      paths.append( os.path.join("Frameworks", "libODBind.dylib") )
+    elif config == BuildConfig.Debug:
+      paths.append( os.path.join("Frameworks", "Debug", "libODBindd.dylib") )
+      paths.append( os.path.join("Frameworks", "Debug", "libODBind.dylib") )
+
+  for path in paths:
+    fullpath = os.path.join(appldir, path)
+    if os.path.isfile(fullpath):
+      return fullpath
+
+  return None
+
 def getLibPlfDir(args=None, config=BuildConfig.AUTO):
   """OpendTect link libraries directory
 
@@ -606,41 +663,10 @@ def getLibPlfDir(args=None, config=BuildConfig.AUTO):
   
   """
 
-  if config==BuildConfig.AUTO:
-    rellibpath = getLibPlfDir( args, BuildConfig.Release )
-    if rellibpath == None:
-      return getLibPlfDir( args, BuildConfig.Debug )
-    return rellibpath
-
-  appldir = getODSoftwareDir()
-  paths = [] 
+  libpath = getODBindLib(args, config)
+  if libpath and os.path.isfile(libpath):
+    return os.path.dirname(libpath)
   
-  if isWin():
-    if config == BuildConfig.Release:
-      paths.append( os.path.join("bin", "win64", "Release", "Basic.dll") )
-    elif config == BuildConfig.Debug:
-      paths.append( os.path.join("bin", "win64", "Debug", "Basicd.dll") )
-      paths.append( os.path.join("bin", "win64", "Debug", "Basic.dll") )
-  
-  elif isLux(): 
-    if config == BuildConfig.Release:
-      paths.append( os.path.join("bin", "lux64", "Release", "libBasic.so") )
-    elif config == BuildConfig.Debug:
-      paths.append( os.path.join("bin", "lux64", "Debug", "libBasicd.so") )
-      paths.append( os.path.join("bin", "lux64", "Debug", "libBasic.so") )
-  
-  elif isMac():
-    if config == BuildConfig.Release:
-      paths.append( os.path.join("Frameworks", "libBasic.dylib") )
-    elif config == BuildConfig.Debug:
-      paths.append( os.path.join("Frameworks", "Debug", "libBasicd.dylib") )
-      paths.append( os.path.join("Frameworks", "Debug", "libBasic.dylib") )
-
-  for path in paths:
-    fullpath = os.path.join(appldir, path)
-    if os.path.isfile(fullpath):
-      return os.path.dirname(fullpath)
-
   return None
 
 def get_settings_dir():
