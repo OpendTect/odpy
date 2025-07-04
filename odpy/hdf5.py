@@ -103,6 +103,8 @@ def getAttr( dataset, ky ):
 
   attrib = dataset.attrs[ky]
   if isinstance(attrib,np.ndarray):
+    if isinstance(attrib[0],np.ndarray):
+      return attrib[0][0]
     return attrib[0]
   return np.bytes_( attrib ).decode().rstrip().split("\x00")[0]
 
