@@ -57,7 +57,7 @@ def getODCommand(execnm,args=None):
     }
 
     >>> getODCommand( od_process_attrib, args=args )
-    ['C:\\Program Files\\OpendTect\\6.6.0\\bin\win64\Release\\od_process_attrib',
+    ['C:\\Program Files\\OpendTect\\6.6.0\\bin\\win64\\Release\\od_process_attrib',
     '--dataroot',
     'D:\\ODData',
     '--survey',

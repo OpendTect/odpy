@@ -33,6 +33,8 @@ import collections
 import numpy as np
 import h5py
 
+from odpy.compat import char_encode, h5py_libver, ensure_h5py_state
+
 dGBInfoDSName = '++info++'
 
 def openFile( filenm, mode ):
@@ -46,7 +48,10 @@ def openFile( filenm, mode ):
     * obj: A HDF5 file object (in mode selected)
   """
   
-  return h5py.File( filenm, mode, libver=('v110', 'latest') )
+  # Upper bound 'v114': OpendTect's C++ HDF5 (1.14) cannot read v200 files,
+  # which 'latest' selects on hdf5 2.x.
+  ensure_h5py_state()
+  return h5py.File( filenm, mode, libver=h5py_libver('v110','v114') )
 
 def getInfoDataSet( h5file_or_grp ):
   """ Gets info on HDF5 object
@@ -120,7 +125,7 @@ def setAttr( dataset, ky, str ):
     * Nothing (sets dataset attribute)
   """
 
-  dataset.attrs[ky] = np.chararray.encode( str )
+  dataset.attrs[ky] = char_encode( str )
 
 def hasAttr( dataset, ky ):
   """ Checks if HDF5 object has attribute
