@@ -88,8 +88,9 @@ def getLogNames( wllnm, args={} ):
 
 def getLog( wllnm, lognm, args={} ):
   """Get a well log from the OpendTect database
-    Read a single log from the OpendTect database, without
-    any depth resampling or unit conversion.
+    Read a single log from the OpendTect database as stored,
+    without any depth resampling. Depths are in the depth unit
+    of the survey, undefined values are returned as NaN.
     
     Parameters:
       * wllnm (string): Well database name
@@ -103,7 +104,11 @@ def getLog( wllnm, lognm, args={} ):
   """
 
   surv = oddbman.getSurvey(args)
-  res,_ = Well(surv, wllnm).logs([lognm], upscale=False)
+  well = Well(surv, wllnm)
+  if hasattr(well, 'log'):
+    res,_ = well.log(lognm)
+  else:
+    res,_ = well.logs([lognm], upscale=False)
 
   return (res['dah'], res[lognm])
 
