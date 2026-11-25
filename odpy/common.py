@@ -24,14 +24,14 @@ Example
 --------
 >>> import odpy.common as odcommon
 >>> odcommon.getODSoftwareDir()
-    Windows: 'C:\\Program Files\\OpendTect\\2025'
-    Linux: '/home/user/OpendTect/2025'
-    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents'
+    Windows: 'C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro'
+    Linux: '/home/user/.local/share/dGB_Earth_Sciences/OpendTect/Pro'
+    MacOS: '/Users/user/Applications/OpendTect/OpendTect 2026.app/Contents'
 
 >>> odcommon.getODArgs()
-    {'dtectexec': ['C:\\PROGRA~1\\OPENDT~1\\new\\6683E8~1.0\\bin\\win64\\Release'],
-     'dtectdata': ['C:\\Users\\OLAWALE IBRAHIM\\DTECT_DATA'],
-     'survey': ['F3_Demo_2020']}
+    {'dtectexec': ['C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro\\bin\\win64\\Release'],
+     'dtectdata': ['C:\\Users\\user\\DTECT_DATA'],
+     'survey': ['F3_Demo_2023']}
 
 """
 
@@ -116,9 +116,9 @@ def set_log_file( filenm, logger ):
     * logger (object): log object
 
   Returns:
-    Nothing. 
+    Nothing.
     Removes past handlers if any and sets new log handler type based on file name
-  
+
   """
 
   for handler in logger.handlers:
@@ -140,19 +140,19 @@ def set_log_file( filenm, logger ):
 
 def get_log_logger():
   """ Returns logger
-  
+
   """
   return proclog_logger
 
 def get_std_logger():
   """ Returns module logger
-  
+
   """
   return syslog_logger
 
 def mergeArgs(a,b=None,c=None,d=None,e=None,f=None):
   """Concatenates input strings and objects if more than one as single string
-  
+
   Parameters:
     * a (object or string): Message to be printed
     * b-f (object or string, optional): Message to be printed
@@ -164,7 +164,7 @@ def mergeArgs(a,b=None,c=None,d=None,e=None,f=None):
     * All objects are formatted to strings using the str() function
     * All outputs are automatically separated by spaces.
   """
-  
+
   msg = str(a)
   if b != None:
     msg = msg+' '+str(b)
@@ -223,7 +223,7 @@ def has_file_handlers(logger):
 
   Parameters:
     * logger (object): Logger file object
-  
+
   Returns:
     * bool: True if logger is a file handler logger
   """
@@ -244,7 +244,7 @@ def has_stdlog_file():
 
 def has_log_file():
   """ Checks if log (odproclog) has a file handler
-  
+
   Returns:
   * bool: True if log file (odproclog) has a File handler and False if otherwise
   """
@@ -253,12 +253,12 @@ def has_log_file():
 
 def get_handler_stream(logger):
   """ Gets log handler stream
-  
+
   Parameters:
     * logger (object): log file object
 
   Returns:
-      * str: where log info streams to if log handler exist, 
+      * str: where log info streams to if log handler exist,
       returns None if handler level is not set
   """
   for handler in logger.handlers:
@@ -276,7 +276,7 @@ def get_handler_filename(logger):
 
   Returns:
     * str: Log file name if any, None if not
-  
+
   """
   for handler in logger.handlers:
     if isinstance( handler, logging.FileHandler ):
@@ -288,7 +288,7 @@ def get_std_stream():
 
   Returns:
     * str: log stream handler name
-  
+
   """
 
   return get_handler_stream( get_std_logger() )
@@ -298,9 +298,9 @@ def get_log_stream():
 
   Returns:
     * str: log stream handler name
-  
+
   """
-  
+
   return get_handler_stream( get_log_logger() )
 
 def get_stdlog_file():
@@ -325,7 +325,7 @@ def reset_log_file( keeplines=0 ):
   """Log file reset
 
   Parameters:
-    * keeplines (int, optional): 
+    * keeplines (int, optional):
       Number of lines from the top of the file to keep (default is 0)
 
   Empty the log file pointed at by the processing logger,
@@ -350,7 +350,7 @@ def reset_log_file( keeplines=0 ):
     f.write( line )
   f.close()
   set_log_file( logfnm, proclog_logger )
-  
+
 storedstdout = None
 storedstderr = None
 
@@ -434,13 +434,13 @@ def isMac():
 if platform.python_version() < "3":
   std_msg( "odpy requires at least Python 3" )
   sys.exit( 1 )
-  
+
 def isPossibleODSoftwareDir( curdir ):
   relinfodir = 'relinfo'
   if not isMac():
     appldir = os.path.join(curdir, relinfodir)
     return os.path.isdir(appldir)
-  
+
   appldir = os.path.join(curdir, "Resources", relinfodir)
   if os.path.isdir(appldir):
     return True
@@ -461,39 +461,45 @@ def getODSoftwareDir(args=None):
 
   Notes:
     * First search method: retrieved from the input dictionary.
-    * Second search method:  if odpy is located within an OpendTect
+    * Second search method: the 'DTECT_APPL' variable, when it points
+      at a directory that contains 'relinfo'. This selects a build
+      directory that has not been installed.
+    * Third search method: if odpy is located within an OpendTect
       installation, the path to this installation will be returned.
-    * Third search method: retrieved by reading the 'DTECT_APPL'
-      variables which are set by OpendTect at runtime.
     * Fourth search method: If all everything else fails, the PATH
       variable will be inspected to detect available OpendTect
       installations.
 
   Examples:
     >>> getODSoftwareDir()
-    Windows: 'C:\\Program Files\\OpendTect\\2025'
-    Linux: '/home/user/OpendTect/2025'
-    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents'
+    Windows: 'C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro'
+    Linux: '/home/user/.local/share/dGB_Earth_Sciences/OpendTect/Pro'
+    MacOS: '/Users/user/Applications/OpendTect/OpendTect 2026.app/Contents'
 
   """
 
-  if args != None and 'dtectexec' in args:
+  if args != None and args.get('dtectexec'):
     appldir = getExecPlfDir(args)
-    for i in range(5):
+    for _ in range(5):
+      if not appldir:
+        break
       if isPossibleODSoftwareDir( appldir ):
         return appldir
-      appldir = os.path.dirname(appldir)
-  
+      parent = os.path.dirname(appldir)
+      if parent == appldir:
+        break
+      appldir = parent
+
+  appldir = os.environ.get( 'DTECT_APPL' )
+  if appldir and isPossibleODSoftwareDir( appldir ):
+    return appldir
+
   curdir = __file__
   for _ in range(4):
     curdir = os.path.dirname( curdir )
     if isPossibleODSoftwareDir( curdir ):
       return curdir
 
-  applenvvar = 'DTECT_APPL'
-  if applenvvar in os.environ:
-    return os.environ[applenvvar]
- 
   return findODSoftwarePath()
 
 def findODSoftwarePath():
@@ -513,7 +519,7 @@ def findODSoftwarePath():
       if path.endswith(expectedpathend):
         for _ in range(5):
           if isPossibleODSoftwareDir( path ):
-            return path 
+            return path
           path = os.path.dirname(path)
   return None
 
@@ -540,9 +546,9 @@ def getExecPlfDir(args=None, config=BuildConfig.AUTO):
 
   Examples:
     >>> getExecPlfDir()
-    Windows: 'C:\\Program Files\\OpendTect\\2025\\bin\\win64\\Release'
-    Linux: '/home/user/OpendTect/2025/bin/lux64/Release'
-    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents/MacOS'
+    Windows: 'C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro\\bin\\win64\\Release'
+    Linux: '/home/user/.local/share/dGB_Earth_Sciences/OpendTect/Pro/bin/lux64/Release'
+    MacOS: '/Users/user/Applications/OpendTect/OpendTect 2026.app/Contents/MacOS'
 
   """
 
@@ -555,23 +561,26 @@ def getExecPlfDir(args=None, config=BuildConfig.AUTO):
       return getExecPlfDir( args, BuildConfig.Debug )
     return relexecpath
 
-  appldir = getODSoftwareDir()
-  paths = [] 
-  
+  appldir = getODSoftwareDir(args)
+  if not appldir:
+    return None
+
+  paths = []
+
   if isWin():
     if config == BuildConfig.Release:
       paths.append( os.path.join("bin", "win64", "Release", "od_FileBrowser.exe") )
     elif config == BuildConfig.Debug:
       paths.append( os.path.join("bin", "win64", "Debug", "od_FileBrowserd.exe") )
       paths.append( os.path.join("bin", "win64", "Debug", "od_FileBrowser.exe") )
-  
-  elif isLux(): 
+
+  elif isLux():
     if config == BuildConfig.Release:
       paths.append( os.path.join("bin", "lux64", "Release", "od_FileBrowser") )
     elif config == BuildConfig.Debug:
       paths.append( os.path.join("bin", "lux64", "Debug", "od_FileBrowserd") )
       paths.append( os.path.join("bin", "lux64", "Debug", "od_FileBrowser") )
-  
+
   elif isMac():
     if config == BuildConfig.Release:
       paths.append( os.path.join("MacOS", "od_FileBrowser") )
@@ -585,7 +594,7 @@ def getExecPlfDir(args=None, config=BuildConfig.AUTO):
       return os.path.dirname(fullpath)
 
   return None
-  
+
 def getODBindLib(args=None, config=BuildConfig.AUTO):
   """OpendTect ODBind link library path
 
@@ -600,10 +609,10 @@ def getODBindLib(args=None, config=BuildConfig.AUTO):
 
   Examples:
     >>> getODBindLib()
-    Windows: 'C:\\Program Files\\OpendTect\\2025\\bin\\win64\\Release\\ODBind.dll'
-    Linux: '/home/user/OpendTect/2025/bin/lux64/Release/libODBind.so'
-    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents/Frameworks/libODBind.dylib'
-  
+    Windows: 'C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro\\bin\\win64\\Release\\ODBind.dll'
+    Linux: '/home/user/.local/share/dGB_Earth_Sciences/OpendTect/Pro/bin/lux64/Release/libODBind.so'
+    MacOS: '/Users/user/Applications/OpendTect/OpendTect 2026.app/Contents/Frameworks/libODBind.dylib'
+
   """
 
   if config==BuildConfig.AUTO:
@@ -612,23 +621,26 @@ def getODBindLib(args=None, config=BuildConfig.AUTO):
       return getODBindLib( args, BuildConfig.Debug )
     return odb_path
 
-  appldir = getODSoftwareDir()
-  paths = [] 
-  
+  appldir = getODSoftwareDir(args)
+  if not appldir:
+    return None
+
+  paths = []
+
   if isWin():
     if config == BuildConfig.Release:
       paths.append( os.path.join("bin", "win64", "Release", "ODBind.dll") )
     elif config == BuildConfig.Debug:
       paths.append( os.path.join("bin", "win64", "Debug", "ODBindd.dll") )
       paths.append( os.path.join("bin", "win64", "Debug", "ODBind.dll") )
-  
-  elif isLux(): 
+
+  elif isLux():
     if config == BuildConfig.Release:
       paths.append( os.path.join("bin", "lux64", "Release", "libODBind.so") )
     elif config == BuildConfig.Debug:
       paths.append( os.path.join("bin", "lux64", "Debug", "libODBindd.so") )
       paths.append( os.path.join("bin", "lux64", "Debug", "libODBind.so") )
-  
+
   elif isMac():
     if config == BuildConfig.Release:
       paths.append( os.path.join("Frameworks", "libODBind.dylib") )
@@ -657,16 +669,16 @@ def getLibPlfDir(args=None, config=BuildConfig.AUTO):
 
   Examples:
     >>> getLibPlfDir()
-    Windows: 'C:\\Program Files\\OpendTect\\2025\\bin\\win64\\Release'
-    Linux: '/home/user/OpendTect/2025/bin/lux64/Release'
-    MacOS: '/Applications/OpendTect/OpendTect 2025.app/Contents/Frameworks'
-  
+    Windows: 'C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro\\bin\\win64\\Release'
+    Linux: '/home/user/.local/share/dGB_Earth_Sciences/OpendTect/Pro/bin/lux64/Release'
+    MacOS: '/Users/user/Applications/OpendTect/OpendTect 2026.app/Contents/Frameworks'
+
   """
 
   libpath = getODBindLib(args, config)
   if libpath and os.path.isfile(libpath):
     return os.path.dirname(libpath)
-  
+
   return None
 
 def get_settings_dir():
@@ -781,7 +793,7 @@ def add_user_dtectdata( args=None ):
       args = {'dtectdata': [dtectdatadir]}
     else:
       args.update({'dtectdata': [dtectdatadir]})
-  return args 
+  return args
 
 def add_user_survey( args=None ):
   """Returns the OpendTect Survey Directory in a dictionary
@@ -865,8 +877,8 @@ def getIconFp(nm,args=None):
 
   Examples:
     >>> getIconFp( 'dgbpro' )
-    'C:\\Program Files\\OpendTect\\6.6.0\\data\\icons.Default\\dgbpro.png'
-    
+    'C:\\Program Files\\dGB Earth Sciences\\OpendTect\\2026\\Pro\\share\\icons.Default\\dgbpro.png'
+
   """
   oddir = getODSoftwareDir(args)
   ret = os.path.join(oddir,'data','icons.Default',nm)+'.png'
@@ -881,9 +893,9 @@ def tail(fp,lines=1,strip_empty=False,_buffer=4098):
     * fp (object): opened log file
     * lines (int): number of last lines in a file to be printed
     strip_empty (bool): removes empty new lines if True
-    buffer (int): 
+    buffer (int):
   """
-  
+
   lines_found = []
   block_counter = -1
   while len(lines_found) < lines:
@@ -938,7 +950,7 @@ def writeFile( fnm, content ):
     * bool:
       True if file has been successfully created
       False if file isn't created due to an error
-  
+
   """
   try:
     f = open( fnm, 'w' )
